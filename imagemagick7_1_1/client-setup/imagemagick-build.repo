@@ -1,0 +1,7 @@
+[imagemagick-build]
+name=ImageMagick Build Repository
+baseurl=https://raw.githubusercontent.com/mobilecause/imagemagick/main/imagemagick-repo/rpm-repo/x86_64/
+enabled=1
+gpgcheck=0
+metadata_expire=300
+priority=9
