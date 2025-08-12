@@ -1,0 +1,176 @@
+name: Build ImageMagick RPM (Simple)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          echo "Building ImageMagick RPM for x86_64..."
+
+          docker build -t imagemagick-builder .
+
+      - name: Verify Docker Build Success
+        run: |
+          if ! docker inspect imagemagick-builder > /dev/null 2>&1; then
+            echo "❌ Docker build failed"
+            exit 1
+          fi
+          echo "✅ Docker build successful"
+
+      - name: Extract RPMs
+        run: |
+          mkdir -p output
+
+          # Get current user ID to fix permissions
+          USER_ID=$(id -u)
+          GROUP_ID=$(id -g)
+
+          # Run container and extract files with proper permissions
+          docker run --rm \
+            --user root \
+            -v $(pwd)/output:/output \
+            imagemagick-builder bash -c "
+
+            echo 'Container contents:'
+            ls -la /home/builder/
+            echo ''
+            echo 'RPM build output:'
+            ls -la /home/builder/output/ 2>/dev/null || echo 'No output directory found'
+            echo ''
+
+            # Copy only x86_64 and noarch RPMs from output directory
+            if [ -d '/home/builder/output' ] && [ \$(find /home/builder/output -name '*.rpm' | wc -l) -gt 0 ]; then
+              echo 'Copying x86_64 and noarch RPMs from output directory...'
+              find /home/builder/output -name '*x86_64.rpm' -exec cp {} /output/ \; 2>/dev/null || true
+              find /home/builder/output -name '*noarch.rpm' -exec cp {} /output/ \; 2>/dev/null || true
+              echo 'Copied x86_64 and noarch RPMs from output directory'
+            fi
+
+            # Also copy from traditional RPM build locations as backup (x86_64 and noarch only)
+            if [ -d '/home/builder/rpmbuild/RPMS' ]; then
+              echo 'Copying x86_64 and noarch RPMs from rpmbuild RPMS...'
+              find /home/builder/rpmbuild/RPMS -name '*x86_64.rpm' -exec cp {} /output/ \; 2>/dev/null || true
+              find /home/builder/rpmbuild/RPMS -name '*noarch.rpm' -exec cp {} /output/ \; 2>/dev/null || true
+            fi
+
+            if [ -d '/home/builder/rpmbuild/SRPMS' ]; then
+              echo 'Copying source RPMs...'
+              find /home/builder/rpmbuild/SRPMS -name '*.rpm' -exec cp {} /output/ \; 2>/dev/null || true
+            fi
+
+            # Copy spec files if they exist
+            if [ -f '/home/builder/rpmbuild/SPECS/ImageMagick.spec' ]; then
+              cp /home/builder/rpmbuild/SPECS/ImageMagick.spec /output/ImageMagick-modified.spec 2>/dev/null || true
+              echo 'Copied modified spec'
+            fi
+
+            # Fix ownership of copied files
+            chown -R $USER_ID:$GROUP_ID /output/ 2>/dev/null || true
+
+            echo ''
+            echo 'Final output contents:'
+            ls -la /output/
+          "
+
+      - name: List output
+        run: |
+          echo "Generated files:"
+          ls -la output/
+
+          if [ $(find output -name '*.rpm' | wc -l) -gt 0 ]; then
+            echo ""
+            echo "RPM details:"
+            for rpm in output/*.rpm; do
+              if [ -f "$rpm" ]; then
+                echo "=== $(basename $rpm) ==="
+                rpm -qp --info "$rpm" 2>/dev/null || echo "Could not read RPM info for $rpm"
+                echo ""
+              fi
+            done
+          else
+            echo "No RPM files found in output directory"
+          fi
+
+      - name: Extract Complete imagemagick Repository Structure
+        run: |
+          mkdir -p imagemagick-complete
+
+          # Get current user ID to fix permissions
+          USER_ID=$(id -u)
+          GROUP_ID=$(id -g)
+
+          # Extract the complete imagemagick directory structure from container
+          docker run --rm \
+            --user root \
+            -v $(pwd)/imagemagick-complete:/imagemagick-complete \
+            imagemagick-builder bash -c "
+
+            echo 'Extracting complete imagemagick repository structure...'
+
+            # Copy the complete imagemagick-repo directory structure
+            if [ -d '/home/builder/imagemagick-repo' ]; then
+              cp -r /home/builder/imagemagick-repo /imagemagick-complete/
+              echo 'Copied complete imagemagick repository structure'
+            fi
+
+            # Fix ownership of copied files
+            chown -R $USER_ID:$GROUP_ID /imagemagick-complete/ 2>/dev/null || true
+
+            echo 'Complete imagemagick repository structure:'
+            find /imagemagick-complete -type f | sort
+            "
+
+      - name: Verify Complete Repository Structure
+        run: |
+          echo "Complete imagemagick repository structure:"
+          find imagemagick-complete -type f | sort
+
+          echo ""
+          echo "Repository metadata verification:"
+          if [ -f "imagemagick-complete/imagemagick-repo/rpm-repo/x86_64/repodata/repomd.xml" ]; then
+            echo "✅ Repository metadata found"
+            ls -la imagemagick-complete/imagemagick-repo/rpm-repo/x86_64/repodata/
+          else
+            echo "❌ Repository metadata missing"
+          fi
+
+          echo ""
+          echo "Client setup files verification:"
+          if [ -f "imagemagick-complete/imagemagick-repo/client-setup/imagemagick-build.repo" ]; then
+            echo "✅ Repository config found"
+            cat imagemagick-complete/imagemagick-repo/client-setup/imagemagick-build.repo
+          fi
+
+          if [ -f "imagemagick-complete/imagemagick-repo/client-setup/install.sh" ]; then
+            echo "✅ Install script found"
+            ls -la imagemagick-complete/imagemagick-repo/client-setup/install.sh
+          fi
+
+          echo ""
+          echo "RPM packages in repository:"
+          find imagemagick-complete -name "*.rpm" | wc -l
+          find imagemagick-complete -name "*.rpm"
+
+      - name: Upload Complete imagemagick Repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagemagick-complete-x86_64
+          path: imagemagick-complete/imagemagick-repo/
+          retention-days: 10
+        if: always()
+
+      - name: Upload Individual RPMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagemagick-x86_64-rpms
+          path: output/
+          retention-days: 7
+        if: always()
