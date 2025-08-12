@@ -16,7 +16,8 @@ RUN dnf update -y && \
         procps-ng \
         'dnf-command(builddep)' \
         dnf-plugins-core \
-        createrepo_c
+        createrepo_c \
+        gnupg2
 
 # Create build user and setup RPM build environment
 RUN useradd -m builder && \
@@ -43,10 +44,13 @@ RUN cd rpmbuild/SOURCES && \
 
 # Install ImageMagick build dependencies as root
 USER root
-RUN cd /home/builder && \
-    dnf builddep -y rpmbuild/SPECS/ImageMagick.spec || \
-    (echo "Some build dependencies may not be available, installing common ones..." && \
-     dnf install -y --allowerasing \
+RUN echo "=== Installing EPEL and PowerTools ===" && \
+    dnf install -y epel-release || true && \
+    dnf config-manager --set-enabled powertools || true && \
+    dnf config-manager --set-enabled crb || true
+
+RUN echo "=== Installing build dependencies ===" && \
+    dnf install -y --allowerasing --skip-broken \
         pkgconfig \
         bzip2-devel \
         freetype-devel \
@@ -56,8 +60,9 @@ RUN cd /home/builder && \
         giflib-devel \
         zlib-devel \
         perl-devel \
-        ghostscript-devel \
+        perl-generators \
         ghostscript \
+        ghostscript-devel \
         djvulibre-devel \
         libwmf-devel \
         jasper-devel \
@@ -68,28 +73,46 @@ RUN cd /home/builder && \
         lcms2-devel \
         libxml2-devel \
         librsvg2-devel \
-        OpenEXR-devel \
         fftw-devel \
         libwebp-devel \
         jbigkit-devel \
-        openjpeg2-devel \
-        graphviz-devel \
-        libraqm-devel \
-        liblqr-devel \
         fontconfig-devel \
         cairo-devel \
         pango-devel \
         gdk-pixbuf2-devel \
+        libzip-devel \
+        && echo "=== Core dependencies installed ==="
+
+# Try to install optional dependencies (may not all be available)
+RUN echo "=== Installing optional dependencies ===" && \
+    dnf install -y --skip-broken \
+        OpenEXR-devel \
+        openjpeg2-devel \
+        graphviz-devel \
+        libraqm-devel \
+        liblqr-devel \
         gtk3-devel \
-        libzip-devel || true)
+        libheif-devel \
+        libjxl-devel \
+        libraw-devel \
+        urw-base35-fonts-devel \
+        || echo "Some optional dependencies not available"
+
+# Try alternative package names for remaining dependencies
+RUN echo "=== Installing remaining dependencies with alternative names ===" && \
+    dnf install -y --skip-broken \
+        djvulibre-devel \
+        libheif-devel \
+        LibRaw-devel \
+        libwmf-devel \
+        liblqr-1-devel \
+        lqr-devel \
+        || echo "Some alternative packages not available"
 
 # Build ImageMagick RPM
 USER builder
 RUN echo "=== Building ImageMagick RPM ===" && \
-    rpmbuild -bb --nocheck rpmbuild/SPECS/ImageMagick.spec || \
-    (echo "Build failed, trying with reduced feature set..." && \
-     sed -i 's/--enable-shared/--enable-shared --disable-openmp --without-modules/' rpmbuild/SPECS/ImageMagick.spec && \
-     rpmbuild -bb --nocheck rpmbuild/SPECS/ImageMagick.spec)
+    rpmbuild -bb --nocheck rpmbuild/SPECS/ImageMagick.spec
 
 # Create unified output directory with all RPMs
 RUN echo "=== Creating unified output directory ===" && \

@@ -1,6 +1,6 @@
 %bcond_without tests
 
-%bcond_without libheif
+%bcond_with libheif
 
 %if 0%{?flatpak}
 %bcond_with perl
@@ -42,8 +42,9 @@ BuildRequires:  perl-generators
 BuildRequires:  libgs-devel
 # Used in configure to check device availability
 BuildRequires:  ghostscript
-BuildRequires:  pkgconfig(ddjvuapi)
-BuildRequires:  pkgconfig(libwmf)
+# Optional BuildRequires - disable if not available
+# BuildRequires:  pkgconfig(ddjvuapi)
+# BuildRequires:  pkgconfig(libwmf)
 BuildRequires:  pkgconfig(jasper)
 BuildRequires:  libtool-ltdl-devel
 BuildRequires:  pkgconfig(x11)
@@ -52,27 +53,30 @@ BuildRequires:  pkgconfig(xt)
 BuildRequires:  pkgconfig(lcms2)
 BuildRequires:  pkgconfig(libxml-2.0)
 BuildRequires:  pkgconfig(librsvg-2.0)
-%if 0%{?rhel} && 0%{?rhel} < 9
-BuildRequires:  pkgconfig(IlmBase), pkgconfig(OpenEXR) < 2.5.6
-%else
-BuildRequires:  pkgconfig(OpenEXR)
-%endif
+# Optional BuildRequires - disable if not available
+# %%if 0%%{?rhel} && 0%%{?rhel} < 9
+# BuildRequires:  pkgconfig(IlmBase), pkgconfig(OpenEXR) < 2.5.6
+# %%else
+# BuildRequires:  pkgconfig(OpenEXR)
+# %%endif
 BuildRequires:  pkgconfig(fftw3)
 BuildRequires:  pkgconfig(libwebp)
 BuildRequires:  jbigkit-devel
-BuildRequires:  pkgconfig(libjxl)
-BuildRequires:  pkgconfig(libopenjp2) >= 2.1.0
-BuildRequires:  pkgconfig(libcgraph) >= 2.9.0
-BuildRequires:  pkgconfig(raqm)
+# BuildRequires:  pkgconfig(libjxl)
+# BuildRequires:  pkgconfig(libopenjp2) >= 2.1.0
+# BuildRequires:  pkgconfig(libcgraph) >= 2.9.0
+# BuildRequires:  pkgconfig(raqm)
 %if 0%{?fedora} || 0%{?rhel} > 8
 BuildRequires:  pkgconfig(lqr-1)
 %endif
-BuildRequires:  pkgconfig(libraw) >= 0.14.8
+# Optional BuildRequires - disable if not available
+# BuildRequires:  pkgconfig(libraw) >= 0.14.8
 BuildRequires:  pkgconfig(libzstd)
 BuildRequires:  pkgconfig(libzip) >= 1.0.0
 BuildRequires:  pkgconfig(pango) >= 1.28.1
 BuildRequires:  pkgconfig(pangocairo) >= 1.28.1
-BuildRequires:  urw-base35-fonts-devel
+# Optional BuildRequires - disable if not available
+# BuildRequires:  urw-base35-fonts-devel
 BuildRequires:  autoconf automake gcc gcc-c++
 BuildRequires:  make
 BuildRequires:  gnupg2
@@ -238,26 +242,30 @@ export CFLAGS="%{optflags} -DIMPNG_SETJMP_IS_THREAD_SAFE"
         --with-gslib \
         --with-pango \
         --with-fftw \
-        --with-wmf \
+        --without-wmf \
         --with-webp \
-        --with-openexr \
+        --without-openexr \
         --with-rsvg \
         --with-xml \
-        --with-urw-base35-font-dir="%{urw_base35_fontpath}" \
         --without-dps \
+        --without-djvu \
         --enable-openmp \
         --without-gcc-arch \
         --with-jbig \
-        --with-jxl \
-        --with-openjp2 \
-        --with-raw \
+        --without-jxl \
+        --without-openjp2 \
+        --without-raw \
 %if 0%{?fedora} || 0%{?rhel} > 8
         --with-lqr \
+%else
+        --without-lqr \
 %endif
-        --with-gvc \
-        --with-raqm \
+        --without-gvc \
+        --without-raqm \
 %if %{with libheif}
            --with-heic \
+%else
+           --without-heic \
 %endif
 
 # Do *NOT* use %%{?_smp_mflags}, this causes PerlMagick to be silently misbuild
@@ -1607,7 +1615,7 @@ rm PerlMagick/demo/Generic.ttf
 * Thu Apr  1 1999 Bill Nottingham <notting@redhat.com>
 - add more files. Oops.
 
-* Sun Mar 21 1999 Cristian Gafton <gafton@redhat.com> 
+* Sun Mar 21 1999 Cristian Gafton <gafton@redhat.com>
 - auto rebuild in the new build environment (release 2)
 
 * Wed Mar 10 1999 Bill Nottingham <notting@redhat.com>
