@@ -84,6 +84,7 @@ RUN echo "=== Installing build dependencies ===" && \
 # Try to install optional dependencies (may not all be available)
 RUN echo "=== Installing optional dependencies ===" && \
     dnf install -y --skip-broken \
+        liblqr-1-devel \
         gtk3-devel \
         urw-base35-fonts-devel \
         || echo "Some optional dependencies not available"
