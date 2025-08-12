@@ -63,8 +63,6 @@ RUN echo "=== Installing build dependencies ===" && \
         perl-generators \
         ghostscript \
         ghostscript-devel \
-        djvulibre-devel \
-        libwmf-devel \
         jasper-devel \
         libtool-ltdl-devel \
         libX11-devel \
@@ -86,28 +84,13 @@ RUN echo "=== Installing build dependencies ===" && \
 # Try to install optional dependencies (may not all be available)
 RUN echo "=== Installing optional dependencies ===" && \
     dnf install -y --skip-broken \
-        OpenEXR-devel \
-        openjpeg2-devel \
-        graphviz-devel \
-        libraqm-devel \
-        liblqr-devel \
         gtk3-devel \
-        libheif-devel \
-        libjxl-devel \
-        libraw-devel \
         urw-base35-fonts-devel \
         || echo "Some optional dependencies not available"
 
-# Try alternative package names for remaining dependencies
+# Keep this section minimal since most features are disabled
 RUN echo "=== Installing remaining dependencies with alternative names ===" && \
-    dnf install -y --skip-broken \
-        djvulibre-devel \
-        libheif-devel \
-        LibRaw-devel \
-        libwmf-devel \
-        liblqr-1-devel \
-        lqr-devel \
-        || echo "Some alternative packages not available"
+    echo "Most optional features are disabled, skipping alternative packages"
 
 # Build ImageMagick RPM
 USER builder

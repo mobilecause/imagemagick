@@ -136,15 +136,16 @@ Recommends: open-sans-fonts
 This packages contains a shared libraries to use within other applications.
 
 
-%package djvu
-Summary: DjVu plugin for ImageMagick
-Requires: %{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
-Obsoletes: %{name}7-djvu       < %{epoch}:%{version}-%{release}
-Provides:  %{name}7-djvu       = %{epoch}:%{version}-%{release}
+# DjVu support disabled
+# %package djvu
+# Summary: DjVu plugin for ImageMagick
+# Requires: %{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
+# Obsoletes: %{name}7-djvu       < %{epoch}:%{version}-%{release}
+# Provides:  %{name}7-djvu       = %{epoch}:%{version}-%{release}
 
-%description djvu
-This packages contains a plugin for ImageMagick which makes it possible to
-save and load DjvU files from ImageMagick and libMagickCore using applications.
+# %description djvu
+# This packages contains a plugin for ImageMagick which makes it possible to
+# save and load DjvU files from ImageMagick and libMagickCore using applications.
 
 
 %if %{with libheif}
@@ -391,8 +392,9 @@ rm PerlMagick/demo/Generic.ttf
 %{_mandir}/man1/MagickCore-config.*
 %{_mandir}/man1/MagickWand-config.*
 
-%files djvu
-%{_libdir}/%{name}-%{VER}/modules-Q16HDRI/coders/djvu.*
+# DjVu support disabled
+# %files djvu
+# %{_libdir}/%{name}-%{VER}/modules-Q16HDRI/coders/djvu.*
 
 %if %{with libheif}
 %files heic
